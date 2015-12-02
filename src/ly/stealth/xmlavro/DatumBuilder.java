@@ -47,10 +47,18 @@ public class DatumBuilder {
     public static TimeZone getDefaultTimeZone() { return defaultTimeZone; }
 
     private Schema schema;
+    private final boolean skipMissingElements;
+    private final boolean skipMissingAttributes;
     private boolean caseSensitiveNames = true;
 
     public DatumBuilder(Schema schema) {
+        this(schema, false, false);
+    }
+
+    public DatumBuilder(Schema schema, boolean skipMissingElements, boolean skipMissingAttributes) {
         this.schema = schema;
+        this.skipMissingElements = skipMissingElements;
+        this.skipMissingAttributes = skipMissingAttributes;
     }
 
     public boolean isCaseSensitiveNames() { return caseSensitiveNames; }
@@ -196,12 +204,18 @@ public class DatumBuilder {
                 if (ignoredNames.contains(attr.getName())) continue;
 
                 if(!setRecordFieldFromNode) {
-                  Schema.Field field = getFieldBySource(schema, new Source(attr.getName(), true));
-                  if (field == null)
-                    throw new ConverterException("Unsupported attribute " + attr.getName());
-
-                  Object datum = createNodeDatum(field.schema(), attr, false);
-                  record.put(field.name(), datum);
+                    Schema.Field field = getFieldBySource(schema, new Source(attr.getName(), true));
+                    if (field == null) {
+                        String message = String.format("Could not find attribute %s of element %s in avro schema",
+                                attr.getName(), el.getTagName());
+                        if (skipMissingAttributes)
+                            System.err.println(message);
+                        else
+                            throw new ConverterException(message);
+                    } else {
+                        Object datum = createNodeDatum(field.schema(), attr, false);
+                        record.put(field.name(), datum);
+                    }
                 }
             }
         }
@@ -234,11 +248,17 @@ public class DatumBuilder {
             }
         } else {
             Schema.Field anyField = schema.getField(Source.WILDCARD);
-            if (anyField == null)
-                throw new ConverterException("Could not find field " + fieldName + " in Avro Schema " + schema.getName() +  " , neither as specific field nor 'any' element");
-
-            @SuppressWarnings("unchecked") Map<String, String> map = (HashMap<String, String>) record.get(Source.WILDCARD);
-            map.put(fieldName, getContentAsText(child));
+            if (anyField == null) {
+                String message = "Could not find field " + fieldName + " in Avro Schema " + schema.getName() +  " , neither as specific field nor 'any' element";
+                if (skipMissingElements)
+                    System.err.println(message);
+                else
+                    throw new ConverterException(message);
+            }
+            else {
+                @SuppressWarnings("unchecked") Map<String, String> map = (HashMap<String, String>) record.get(Source.WILDCARD);
+                map.put(fieldName, getContentAsText(child));
+            }
         }
     }
 

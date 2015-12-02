@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<catalog>
+    <book id="bk101">
+        <author>Gambardella, Matthew</author>
+        <title>XML Developer's Guide</title>
+        <price>44.95</price>
+        <publish_date>2000-10-01</publish_date>
+        <review>
+            <rating>3</rating>
+            <comment>medium</comment>
+        </review>
+    </book>
+    <book id="bk102">
+        <author>White, Tom</author>
+        <title>Hadoop: The Definitive Guide</title>
+        <price>37.95</price>
+        <publish_date>2015-04-30</publish_date>
+        <description>Learn how to build and maintain reliable, scalable, distributed systems with Apache Hadoop.</description>
+        <review>
+            <rating>5</rating>
+            <comment>very good</comment>
+        </review>
+        <review>
+            <rating>4</rating>
+            <comment>good</comment>
+        </review>
+    </book>
+    <book id="bk103">
+        <author>Hunt, Andrew</author>
+        <title>The Pragmatic Programmer: From Journeyman to Master</title>
+        <price>33.32</price>
+        <publish_date>1999-10-30</publish_date>
+        <review>
+            <rating>5</rating>
+            <comment>old but gold</comment>
+        </review>
+    </book>
+    <book id="bk104">
+        <author>Bloch, Joshua</author>
+        <title>Effective Java</title>
+        <price>26.34</price>
+        <publish_date>2008-05-28</publish_date>
+        <ISBN-13>978-0321356680</ISBN-13>
+    </book>
+</catalog>

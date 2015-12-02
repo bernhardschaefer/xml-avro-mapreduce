@@ -1,0 +1,56 @@
+{
+    "type" : "record",
+    "name" : "Book",
+    "fields" : [ {
+        "name" : "id",
+        "type" : [ "null", "string" ],
+        "default" : null,
+        "source":"attribute id"
+    }, {
+        "name" : "author",
+        "type" : [ "null", "string" ],
+        "default" : null,
+        "source":"element author"
+    }, {
+        "name" : "title",
+        "type" : [ "null", "string" ],
+        "default" : null,
+        "source":"element title"
+    }, {
+        "name" : "price",
+        "type" : [ "null", "float" ],
+        "default" : null,
+        "source":"element price"
+    }, {
+        "name" : "publish_date",
+        "type" : [ "null", "string" ],
+        "default" : null,
+        "source":"element publish_date"
+    }, {
+        "name" : "description",
+        "type" : [ "null", "string" ],
+        "default" : null,
+        "source":"element description"
+    }, {
+        "name" : "review",
+        "source" : "element review",
+        "type" : {
+            "type" : "array",
+            "items" : {
+                "type" : "record",
+                "name" : "review",
+                "fields" : [ {
+                    "name" : "rating",
+                    "source" : "element rating",
+                    "type" : [ "null", "int" ],
+                    "default" : null
+                }, {
+                    "name" : "comment",
+                    "source" : "element comment",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                } ]
+            }
+        }
+    } ]
+}
