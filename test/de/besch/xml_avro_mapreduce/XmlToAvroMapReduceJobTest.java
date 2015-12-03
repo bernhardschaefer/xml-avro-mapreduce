@@ -91,11 +91,4 @@ public class XmlToAvroMapReduceJobTest {
         assertThat(exitCode, not(0));
     }
 
-    @Test
-    public void testSchemaBuilder() {
-        SchemaBuilder builder = new SchemaBuilder();
-        Schema schema = builder.createSchema(getClass().getResourceAsStream("/book-catalog/book.xsd"));
-        System.out.println(schema);
-    }
-
 }
