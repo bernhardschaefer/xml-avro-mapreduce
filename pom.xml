@@ -98,7 +98,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>de.inovex.XmlToAvroMapReduceJob</mainClass>
+                            <mainClass>de.besch.xml_avro_mapreduce.XmlToAvroMapReduceJob</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
