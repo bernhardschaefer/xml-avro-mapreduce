@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Paths;
 
 /**
  * MapReduce job for converting XMLs to Avro by using a predefined avro schema.
@@ -37,14 +36,8 @@ import java.nio.file.Paths;
 public final class XmlToAvroMapReduceJob extends Configured implements Tool {
     private static final Logger LOG = LoggerFactory.getLogger(XmlToAvroMapReduceJob.class);
 
-    //TODO parse from config
-    private static boolean PARSER_SKIP_MISSING_ELEMENTS;
-    private static boolean PARSER_SKIP_MISSING_ATTRIBUTES;
-
-    public XmlToAvroMapReduceJob(boolean skipMissingElements, boolean skipMissingAttributes) {
-        PARSER_SKIP_MISSING_ELEMENTS = skipMissingElements;
-        PARSER_SKIP_MISSING_ATTRIBUTES = skipMissingAttributes;
-    }
+    public static final String CONFIG_SKIP_MISSING_ELEMENTS = "xmltoavro.skip.missing.elements";
+    public static final String CONFIG_SKIP_MISSING_ATTRIBUTES = "xmltoavro.skip.missing.attributes";
 
     public static class XmlToAvroMapper extends Mapper<LongWritable, Text, AvroKey<GenericRecord>, NullWritable> {
         private DatumBuilder datumBuilder;
@@ -52,16 +45,20 @@ public final class XmlToAvroMapReduceJob extends Configured implements Tool {
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
+            Configuration config = context.getConfiguration();
+
             URI[] cacheFiles = context.getCacheFiles();
             if (cacheFiles.length != 1)
                 throw new IllegalStateException("Expected cache files: 1 (avro schema), actual cache files: "
                         + cacheFiles.length);
 
             LOG.debug("Parsing avro schema from uri {}", cacheFiles[0]);
-            avroSchema = AvroUtils.schemaFromUri(cacheFiles[0]);
+            avroSchema = AvroUtils.schemaFromHdfsPath(new Path(cacheFiles[0]), config);
             LOG.debug("Parsed Avro Schema: {}", avroSchema);
 
-            datumBuilder = new DatumBuilder(avroSchema, PARSER_SKIP_MISSING_ELEMENTS, PARSER_SKIP_MISSING_ATTRIBUTES);
+            boolean skipMissingElements = config.getBoolean(CONFIG_SKIP_MISSING_ELEMENTS, true);
+            boolean skipMissingAttributes = config.getBoolean(CONFIG_SKIP_MISSING_ATTRIBUTES, true);
+            datumBuilder = new DatumBuilder(avroSchema, skipMissingElements, skipMissingAttributes);
         }
 
         @Override
@@ -93,24 +90,25 @@ public final class XmlToAvroMapReduceJob extends Configured implements Tool {
     }
 
     public static void main(final String[] args) throws Exception {
-        boolean skipMissingElements = true, skipMissingAttributes = true;
-        XmlToAvroMapReduceJob tool = new XmlToAvroMapReduceJob(skipMissingElements, skipMissingAttributes);
-        int res = ToolRunner.run(new Configuration(), tool, args);
+        int res = ToolRunner.run(new Configuration(), new XmlToAvroMapReduceJob(), args);
         System.exit(res);
     }
 
     public int run(final String[] args) throws Exception {
-        if (args.length != 4)
+        if (args.length != 4 && args.length != 6)
             throw new IllegalArgumentException("Usage: xmlElementName /path/to/avro-schema.avsc inputPaths outputPath");
 
         String xmlElementName = args[0];
-        URI avroSchemaUri = Paths.get(args[1]).toUri();
+
+        Path avroSchemaPath = new Path(args[1]);
+        URI avroSchemaUri = avroSchemaPath.toUri();
+
         String inputPaths = args[2];
         Path outputPath = new Path(args[3]);
 
         Configuration conf = this.getConf();
 
-        Schema avroSchema = AvroUtils.schemaFromHdfsLocation(avroSchemaUri, conf);
+        Schema avroSchema = AvroUtils.schemaFromHdfsPath(avroSchemaPath, conf);
 
         Job job = createJob(conf, xmlElementName, avroSchema);
 

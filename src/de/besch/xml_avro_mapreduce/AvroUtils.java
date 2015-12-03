@@ -1,4 +1,5 @@
 package de.besch.xml_avro_mapreduce;
+
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.generic.GenericDatumReader;
@@ -6,12 +7,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,14 +25,6 @@ import java.util.List;
 public class AvroUtils {
 
     private AvroUtils() {
-    }
-
-    public static Schema schemaFromUrl(URL url) throws IOException {
-        return new Schema.Parser().parse(url.openStream());
-    }
-
-    public static Schema schemaFromUri(URI uri) throws IOException {
-        return schemaFromUrl(uri.toURL());
     }
 
     public static List<GenericRecord> deserializeRecords(Schema schema, File avroFile) throws IOException {
@@ -47,12 +41,32 @@ public class AvroUtils {
         return records;
     }
 
-    public static Schema schemaFromHdfsLocation(URI hdfsPathUri, Configuration conf) throws IOException {
+    public static Schema schemaFromHdfsPath(Path hdfsPath, Configuration conf) throws IOException {
         FileSystem fs = FileSystem.get(conf);
-        Path hdfsPath = new Path(hdfsPathUri);
-        // TODO use more suitable path
-        String localPath = "/tmp/avro-schema.avsc";
-        fs.copyToLocalFile(hdfsPath, new Path(localPath));
-        return new Schema.Parser().parse(new File(localPath));
+        if (fs instanceof LocalFileSystem) {
+            String localPath = hdfsPath.toString();
+            return new Schema.Parser().parse(new File(localPath));
+        } else {
+            // download schema
+            java.nio.file.Path localTempDir = Files.createTempDirectory("avro-schema-dir");
+            java.nio.file.Path localPath = Paths.get(localTempDir.toString(), "avro-schema.avsc");
+            fs.copyToLocalFile(hdfsPath, new Path(localPath.toUri()));
+            Schema schema = new Schema.Parser().parse(localPath.toFile());
+            deleteDir(localTempDir);
+            return schema;
+        }
     }
+
+    /**
+     * Delete files in directory and directory itself.
+     * Only works if the directory has no subdirectories
+     */
+    private static void deleteDir(java.nio.file.Path dir) throws IOException {
+        File[] files = dir.toFile().listFiles();
+        for (int i = 0; i < files.length; i++) {
+            files[i].delete();
+        }
+        Files.delete(dir);
+    }
+
 }

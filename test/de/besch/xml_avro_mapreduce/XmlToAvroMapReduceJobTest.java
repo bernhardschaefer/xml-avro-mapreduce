@@ -1,19 +1,17 @@
 package de.besch.xml_avro_mapreduce;
 
-import ly.stealth.xmlavro.SchemaBuilder;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
-import java.net.URI;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
@@ -34,37 +32,41 @@ public class XmlToAvroMapReduceJobTest {
         HADOOP_CONF.set("mapreduce.framework.name", "local");
     }
 
-    private static int runXmlToAvroJob(Configuration conf, String xmlElementName, String avroSchemaPath,
-                                       String inputPaths, Path outputDirectory, boolean skipMissingElements,
+    private static int runXmlToAvroJob(Configuration conf, String xmlElementName, Path avroSchemaPath,
+                                       String inputPaths, java.nio.file.Path outputDirectory, boolean skipMissingElements,
                                        boolean skipMissingAttributes) throws Exception {
         FileSystem fs = FileSystem.getLocal(conf);
-        fs.delete(new org.apache.hadoop.fs.Path(outputDirectory.toUri()), true);
+        fs.delete(new Path(outputDirectory.toUri()), true);
 
-        String[] args = new String[]{xmlElementName, avroSchemaPath, inputPaths, outputDirectory.toString()};
+        String[] args = new String[]{
+                String.format("-D %s=%b", XmlToAvroMapReduceJob.CONFIG_SKIP_MISSING_ELEMENTS, skipMissingElements),
+                String.format("-D %s=%b", XmlToAvroMapReduceJob.CONFIG_SKIP_MISSING_ATTRIBUTES, skipMissingAttributes),
+                xmlElementName,
+                avroSchemaPath.toString(),
+                inputPaths,
+                outputDirectory.toString()};
 
-        XmlToAvroMapReduceJob tool = new XmlToAvroMapReduceJob(skipMissingElements, skipMissingAttributes);
-        tool.setConf(conf);
-        return ToolRunner.run(conf, tool, args);
+        return ToolRunner.run(conf, new XmlToAvroMapReduceJob(), args);
     }
 
     @Test
     public void testBookCatalogExample() throws Exception {
-        URI avroSchemaUri = getClass().getResource("/book-catalog/book.avsc").toURI();
-        String inputPaths = getClass().getResource("/book-catalog/books.xml").getFile();
+        Path avroSchemaPath = new Path(getClass().getResource("/book-catalog/book.avsc").getPath());
+        String inputPaths = getClass().getResource("/book-catalog/books.xml").getPath();
         String xmlElementName = "book";
 
         // workaround to create a path for a temp directory
-        Path outputDirectory = Files.createTempDirectory(xmlElementName + "-avro");
+        java.nio.file.Path outputDirectory = Files.createTempDirectory(xmlElementName + "-avro");
 
         boolean skipMissingElements = true, skipMissingAttributes = true;
-        int exitCode = runXmlToAvroJob(HADOOP_CONF, xmlElementName, avroSchemaUri.getPath(), inputPaths, outputDirectory,
+        int exitCode = runXmlToAvroJob(HADOOP_CONF, xmlElementName, avroSchemaPath, inputPaths, outputDirectory,
                 skipMissingElements, skipMissingAttributes);
 
         assertThat(exitCode, is(0));
 
         File avroFile = new File(outputDirectory.toString(), "part-m-00000.avro");
 
-        Schema avroSchema = AvroUtils.schemaFromUri(avroSchemaUri);
+        Schema avroSchema = AvroUtils.schemaFromHdfsPath(avroSchemaPath, HADOOP_CONF);
         List<GenericRecord> records = AvroUtils.deserializeRecords(avroSchema, avroFile);
 
         assertThat("all books are included", records.size(), is(4));
@@ -77,15 +79,15 @@ public class XmlToAvroMapReduceJobTest {
 
     @Test
     public void testBookCatalogExample2() throws Exception {
-        URI avroSchemaUri = getClass().getResource("/book-catalog/book.avsc").toURI();
-        String inputPaths = getClass().getResource("/book-catalog/books.xml").getFile();
+        Path avroSchemaPath = new Path(getClass().getResource("/book-catalog/book.avsc").getPath());
+        String inputPaths = getClass().getResource("/book-catalog/books.xml").getPath();
         String xmlElementName = "book";
 
         // workaround to create a path for a temp directory
-        Path outputDirectory = Files.createTempDirectory(xmlElementName + "-avro");
+        java.nio.file.Path outputDirectory = Files.createTempDirectory(xmlElementName + "-avro");
 
         boolean skipMissingElements = false, skipMissingAttributes = false;
-        int exitCode = runXmlToAvroJob(HADOOP_CONF, xmlElementName, avroSchemaUri.getPath(), inputPaths, outputDirectory,
+        int exitCode = runXmlToAvroJob(HADOOP_CONF, xmlElementName, avroSchemaPath, inputPaths, outputDirectory,
                 skipMissingElements, skipMissingAttributes);
 
         assertThat(exitCode, not(0));
