@@ -78,7 +78,7 @@ public class XmlToAvroMapReduceJobTest {
     }
 
     @Test
-    public void testBookCatalogExample2() throws Exception {
+    public void testFailingBookCatalogExample() throws Exception {
         Path avroSchemaPath = new Path(getClass().getResource("/book-catalog/book.avsc").getPath());
         String inputPaths = getClass().getResource("/book-catalog/books.xml").getPath();
         String xmlElementName = "book";
@@ -86,7 +86,8 @@ public class XmlToAvroMapReduceJobTest {
         // workaround to create a path for a temp directory
         java.nio.file.Path outputDirectory = Files.createTempDirectory(xmlElementName + "-avro");
 
-        boolean skipMissingElements = false, skipMissingAttributes = false;
+        boolean skipMissingElements = false;
+        boolean skipMissingAttributes = false;
         int exitCode = runXmlToAvroJob(HADOOP_CONF, xmlElementName, avroSchemaPath, inputPaths, outputDirectory,
                 skipMissingElements, skipMissingAttributes);
 

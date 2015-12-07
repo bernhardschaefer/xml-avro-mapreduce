@@ -95,8 +95,8 @@ public final class XmlToAvroMapReduceJob extends Configured implements Tool {
     }
 
     public int run(final String[] args) throws Exception {
-        if (args.length != 4 && args.length != 6)
-            throw new IllegalArgumentException("Usage: xmlElementName /path/to/avro-schema.avsc inputPaths outputPath");
+        if (args.length != 4)
+            throw new IllegalArgumentException("Usage: <xmlElementName> </path/to/avro-schema.avsc> <inputPaths> <outputPath>");
 
         String xmlElementName = args[0];
 
